@@ -1,6 +1,12 @@
 require('dotenv').config();
+require('./config/dbConnection');
 var express     = require("express"),
     app         = express(),
+    path        = require('path'),
+    httpServer 	= require('http').Server(app),
+    io 			= require('socket.io')(httpServer),
+    socketEvents = require('./config/socketEvents')(io, app),
+    compression = require('compression'),
     bodyParser  = require("body-parser"),
     mongoose    = require("mongoose"),
     flash       = require("connect-flash"),
@@ -15,11 +21,13 @@ var express     = require("express"),
     var commentRoutes = require("./routes/comments"),
     campgroundRoutes  = require("./routes/campgrounds"),
           indexRoutes  = require("./routes/index"); 
-    
-mongoose.connect("mongodb://localhost/yelp_camp_v6");
+//Set port and ip
+app.set("port", process.env.PORT || 3000);
+app.set("ip", process.env.IP ||"0.0.0.0");
+app.use(compression());
 app.use(bodyParser.urlencoded({extended: true}));
 app.set("view engine", "ejs");
-app.use(express.static(__dirname + "/public"));
+app.use(express.static(path.join(__dirname + "/public"), {maxAge: 240000}));
 app.use(methodOverride("_method"));
 app.use(flash());
 //seed the database
@@ -44,12 +52,22 @@ app.use(function(req, res, next){
    next();
 });
 
+
 app.use("/",indexRoutes);
 app.use("/campgrounds" ,campgroundRoutes);
 app.use("/campgrounds/:id/comments",commentRoutes);
 
-
-
-app.listen(process.env.PORT, process.env.IP, function(){
-   console.log("The YelpCamp Server Has Started!");
+var server = httpServer.listen(app.get("port"), app.get('ip'), (err) => {
+	if(err) {
+		throw new Error(err+" YelpCamp server could not start due to technical issues!");
+	} else {
+		var port = server.address().port;
+		console.log("YelpCamp app has started on port: "+port);
+	}
 });
+function cleanup () {
+    server._connections=0;
+}
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
