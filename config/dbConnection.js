@@ -1,7 +1,7 @@
 /* Require mongoose, initialize it and 
 create connection to MongoDB*/
 const mongoose = require('mongoose');
-const dburl = process.env.DATABASE;
+const dburl = process.env.DATABASE 
 mongoose.Promise = Promise;
 
 //establish Connection
@@ -44,3 +44,4 @@ process.once('SIGUSR2', function() {
 		process.kill(process.pid, 'SIGUSR2');
 	});
 });
+ 
